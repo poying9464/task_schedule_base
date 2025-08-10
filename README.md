@@ -15,7 +15,7 @@ Task Schedule Base 是一个为 task_schedule 调度框架提供的扩展库，�
 ```xml
 <dependency>
     <groupId>org.poying</groupId>
-    <artifactId>quartz-extensions</artifactId>
+    <artifactId>task-schedule-base</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```

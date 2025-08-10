@@ -6,13 +6,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.poying</groupId>
-    <artifactId>quartz-extensions</artifactId>
+    <artifactId>task-schedule-base</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>Task Schedule Base</name>
     <description>The basic jar package for task schedule</description>
-    <url>https://github.com/poying9464/task_schedule</url>   // git@github.com:poying9464/task_schedule.git
+    <url>https://github.com/poying9464/task_schedule_base</url>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -52,7 +52,7 @@
         <plugins>
             <!-- Maven Compiler Plugin -->
             <plugin>
-                <groupId>org.apache.maven.apache.plugins</groupId>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
@@ -63,14 +63,14 @@
 
             <!-- Maven Surefire Plugin for running tests -->
             <plugin>
-                <groupId>org.apache.maven.apache.plugins</groupId>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.0.0-M9</version>
             </plugin>
 
             <!-- Maven Source Plugin to package source code -->
             <plugin>
-                <groupId>org.apache.maven.apache.plugins</groupId>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>3.2.1</version>
                 <executions>
@@ -85,7 +85,7 @@
 
             <!-- Maven Javadoc Plugin to generate and package javadoc -->
             <plugin>
-                <groupId>org.apache.maven.apache.plugins</groupId>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.5.0</version>
                 <executions>
