@@ -1,6 +1,6 @@
-# Quartz Extensions
+# Task Schedule Base
 
-Quartz Extensions 是一个为 Quartz 调度框架提供的扩展库，包含基础任务类、自定义注解和任务注册工具，旨在简化 Quartz 任务的开发和管理。
+Task Schedule Base 是一个为 task_schedule 调度框架提供的扩展库，包含基础任务类、自定义注解和任务注册工具，旨在简化添加task_schedule的任务管理。
 
 ## 功能特性
 
