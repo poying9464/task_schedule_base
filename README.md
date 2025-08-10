@@ -1,16 +1,16 @@
 # Task Schedule Base
 
-Task Schedule Base 是一个为 task_schedule 调度框架提供的扩展库，包含基础任务类、自定义注解和任务注册工具，旨在简化添加task_schedule的任务管理。
+Task Schedule Base is an extension library for the task_schedule framework, including base job classes, custom annotations, and job registration tools, designed to simplify task management in task_schedule.
 
-## 功能特性
+## Features
 
-1. **BaseJob 基类** - 提供统一的日志处理功能
-2. **自定义注解** - 简化任务和调度配置
-3. **任务注册工具** - 支持基于注解的自动任务注册
+1. **BaseJob Class** - Provides unified logging functionality
+2. **Custom Annotations** - Simplifies job and scheduling configuration
+3. **Job Registration Tool** - Supports annotation-based automatic job registration
 
-## 安装
+## Installation
 
-在 Maven 项目中添加以下依赖：
+Add the following dependency to your Maven project:
 
 ```xml
 <dependency>
@@ -20,21 +20,21 @@ Task Schedule Base 是一个为 task_schedule 调度框架提供的扩展库，�
 </dependency>
 ```
 
-## 使用方法
+## Usage
 
-### 1. 创建任务类
+### 1. Create a Job Class
 
 ```java
 import org.poying.base.BaseJob;
-import annotations.org.poying.base.ScheduledJob;
-import annotations.org.poying.base.JobSchedule;
+import org.poying.base.annotations.ScheduledJob;
+import org.poying.base.annotations.JobSchedule;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 @ScheduledJob(
         name = "SampleTask",
         group = "SAMPLE_GROUP",
-        description = "这是一个示例任务",
+        description = "This is a sample task",
         taskId = "202518221236"
 )
 @JobSchedule(
@@ -45,71 +45,68 @@ public class SampleTask extends BaseJob {
 
     @Override
     protected void executeJob(JobExecutionContext context) throws JobExecutionException {
-        logger.info("执行示例任务");
-        // 在这里实现具体的业务逻辑
+        logger.info("Executing sample task");
+        // Implement your specific business logic here
     }
 }
 ```
 
-### 2. 注册任务
+### 2. Register the Job
 
 ```java
-
 import org.quartz.Scheduler;
 
-// 获取调度器实例
+// Get scheduler instance
 Scheduler scheduler = ...;
 
-// 注册任务
-        JobRegistrar.
-
-        registerAnnotatedJob(scheduler, SampleTask .class);
+// Register job
+JobRegistrar.registerAnnotatedJob(scheduler, SampleTask.class);
 ```
 
-## BaseJob 基类
+## BaseJob Class
 
-[BaseJob](file:///D:/develop_pro/coffee/task_schedule/quartz-extensions/src/main/java/org/quartz/extensions/BaseJob.java) 是所有任务的基类，提供了以下功能：
+[BaseJob](file:///D:/develop_pro/coffee/task_schedule/quartz-extensions/src/main/java/org/quartz/extensions/BaseJob.java) is the base class for all jobs, providing the following features:
 
-1. **自动日志配置** - 每个任务会自动获得独立的日志文件
-2. **MDC 支持** - 通过 MDC 机制实现任务日志隔离
-3. **统一异常处理** - 提供基础的异常处理框架
+1. **Automatic Log Configuration** - Each job automatically gets its own log file
+2. **MDC Support** - Task log isolation through MDC mechanism
+3. **Unified Exception Handling** - Provides basic exception handling framework
 
-## 自定义注解
+## Custom Annotations
 
 ### @ScheduledJob
 
-用于标记和配置任务的基本信息：
+Used to mark and configure basic job information:
 
-- `name` - 任务名称
-- `group` - 任务组名
-- `description` - 任务描述
-- `storeDurably` - 是否持久化存储
+- `name` - Job name
+- `group` - Job group name
+- `description` - Job description
+- `storeDurably` - Whether to store persistently
 
 ### @JobSchedule
 
-用于定义任务的调度计划：
+Used to define the job scheduling plan:
 
-- `cron` - Cron 表达式
-- `intervalInSeconds` - 简单调度间隔（秒）
-- `repeatCount` - 重复次数
-- `startNow` - 是否立即启动
+- `cron` - Cron expression
+- `intervalInSeconds` - Simple scheduling interval (seconds)
+- `repeatCount` - Number of repetitions
+- `startNow` - Whether to start immediately
 
-## 任务注册工具
+## Job Registration Tool
 
-[JobRegistrar](file:///D:/develop_pro/coffee/task_schedule/quartz-extensions/src/main/java/org/quartz/extensions/JobRegistrar.java) 提供了基于注解的自动任务注册功能：
+[JobRegistrar](file:///D:/develop_pro/coffee/task_schedule/quartz-extensions/src/main/java/org/quartz/extensions/JobRegistrar.java) provides annotation-based automatic job registration functionality:
 
 ```java
-// 注册单个任务
+// Register a single job
 JobRegistrar.registerAnnotatedJob(scheduler, YourJobClass.class);
 ```
 
-## 日志配置
+## Logging Configuration
 
-任务会自动获得独立的日志文件，文件命名规则为：
-- `task_schedule_任务类名.log` - 当前日志文件
-- `task_schedule_任务类名.yyyy-MM-dd.i.log` - 历史日志文件
+Jobs automatically get independent log files with the following naming convention:
+- `task_schedule_JobClassName.log` - Current log file
+- `task_schedule_JobClassName.yyyy-MM-dd.i.log` - Historical log files
 
-要启用此功能，需要在 logback 配置中添加相应的 appender 配置：
+To enable this feature, add the corresponding appender configuration in your logback configuration:
 
 ```xml
 <appender name="TASK_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -129,26 +126,26 @@ JobRegistrar.registerAnnotatedJob(scheduler, YourJobClass.class);
 </logger>
 ```
 
-## 构建和发布
+## Build and Deployment
 
-### 构建项目
+### Build Project
 
 ```bash
 mvn clean package
 ```
 
-### 发布到本地仓库
+### Deploy to Local Repository
 
 ```bash
 mvn clean install
 ```
 
-### 发布到远程仓库
+### Deploy to Remote Repository
 
 ```bash
 mvn clean deploy
 ```
 
-## 许可证
+## License
 
 MIT
