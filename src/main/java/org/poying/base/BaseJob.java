@@ -2,6 +2,7 @@ package org.poying.base;
 
 import org.poying.base.ext.Surround;
 import org.poying.base.annotations.RunOrder;
+import org.poying.base.annotations.TaskRunnerProcessor;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -26,8 +27,6 @@ public abstract class BaseJob implements Job {
 
     protected Logger logger;
 
-    private List<Surround> surrounds;
-
     public BaseJob() {
         this.logger = LoggerFactory.getLogger(this.getClass());
     }
@@ -50,7 +49,22 @@ public abstract class BaseJob implements Job {
             }
         } finally {
             // 最后清理MDC上下文
+            integration(context);
             MDC.clear();
+        }
+    }
+
+    /**
+     * 整合before和after逻辑
+     *
+     * @param context ctx
+     */
+    private void integration(JobExecutionContext context) {
+        List<SurroundWithOrder> surrounds = getAscendingOrderSurrounds();
+        // 创建一个新的列表用于排序，避免修改原始列表
+
+        for (SurroundWithOrder surroundWithOrder : surrounds) {
+            surroundWithOrder.surround.integration(context);
         }
     }
 
@@ -60,25 +74,11 @@ public abstract class BaseJob implements Job {
      * @param context ctx
      */
     private void after(JobExecutionContext context) {
-        if (surrounds != null) {
-            // 创建一个新的列表用于排序，避免修改原始列表
-            List<SurroundWithOrder> surroundsWithOrder = new ArrayList<>();
-            for (int i = 0; i < surrounds.size(); i++) {
-                Surround surround = surrounds.get(i);
-                int order = i; // 默认使用索引作为顺序值，避免Integer.MAX_VALUE问题
-                RunOrder runOrder = surround.getClass().getAnnotation(RunOrder.class);
-                if (runOrder != null) {
-                    order = runOrder.after();
-                }
-                surroundsWithOrder.add(new SurroundWithOrder(surround, order));
-            }
+        List<SurroundWithOrder> surrounds = getAscendingOrderSurrounds();
+        // 创建一个新的列表用于排序，避免修改原始列表
 
-            // 按照order值降序排序
-            surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
-
-            for (SurroundWithOrder surroundWithOrder : surroundsWithOrder) {
-                surroundWithOrder.surround.after(context);
-            }
+        for (SurroundWithOrder surroundWithOrder : surrounds) {
+            surroundWithOrder.surround.after(context);
         }
     }
 
@@ -88,26 +88,47 @@ public abstract class BaseJob implements Job {
      * @param context ctx
      */
     private void before(JobExecutionContext context) {
-        if (surrounds != null) {
-            // 创建一个新的列表用于排序，避免修改原始列表
-            List<SurroundWithOrder> surroundsWithOrder = new ArrayList<>();
-            for (int i = 0; i < surrounds.size(); i++) {
-                Surround surround = surrounds.get(i);
-                int order = i; // 默认使用索引作为顺序值，避免Integer.MAX_VALUE问题
-                RunOrder runOrder = surround.getClass().getAnnotation(RunOrder.class);
-                if (runOrder != null) {
-                    order = runOrder.before();
+        List<SurroundWithOrder> surrounds = getAscendingOrderSurrounds();
+        // 创建一个新的列表用于排序，避免修改原始列表
+
+        for (SurroundWithOrder surroundWithOrder : surrounds) {
+            surroundWithOrder.surround.before(context);
+        }
+    }
+
+    /**
+     * 从@TaskRunnerProcessor注解中获取Surround列表
+     *
+     * @return Surround列表
+     */
+    private List<SurroundWithOrder> getAscendingOrderSurrounds() {
+        List<Surround> surrounds = new ArrayList<>();
+        TaskRunnerProcessor taskRunnerProcessor = this.getClass().getAnnotation(TaskRunnerProcessor.class);
+
+        if (taskRunnerProcessor != null) {
+            Class<? extends Surround>[] surroundClasses = taskRunnerProcessor.surrounds();
+            for (Class<? extends Surround> surroundClass : surroundClasses) {
+                try {
+                    surrounds.add(surroundClass.getDeclaredConstructor().newInstance());
+                } catch (Exception e) {
+                    logger.error("无法实例化Surround类: {}", surroundClass.getName(), e);
                 }
-                surroundsWithOrder.add(new SurroundWithOrder(surround, order));
-            }
-
-            // 按照order值升序排序
-            surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
-
-            for (SurroundWithOrder surroundWithOrder : surroundsWithOrder) {
-                surroundWithOrder.surround.before(context);
             }
         }
+        List<SurroundWithOrder> surroundsWithOrder = new ArrayList<>();
+        for (int i = 0; i < surrounds.size(); i++) {
+            Surround surround = surrounds.get(i);
+            int order = i; // 默认使用索引作为顺序值，避免Integer.MAX_VALUE问题
+            RunOrder runOrder = surround.getClass().getAnnotation(RunOrder.class);
+            if (runOrder != null) {
+                order = runOrder.before();
+            }
+            surroundsWithOrder.add(new SurroundWithOrder(surround, order));
+        }
+
+        // 按照order值升序排序
+        surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
+        return surroundsWithOrder;
     }
 
     /**
@@ -118,14 +139,6 @@ public abstract class BaseJob implements Job {
      */
     protected abstract void executeJob(JobExecutionContext context) throws JobExecutionException;
 
-    /**
-     * 设置Surround列表
-     *
-     * @param surrounds Surround列表
-     */
-    public void setSurrounds(List<Surround> surrounds) {
-        this.surrounds = surrounds;
-    }
 
     /**
      * 用于包装Surround和其执行顺序的内部类
