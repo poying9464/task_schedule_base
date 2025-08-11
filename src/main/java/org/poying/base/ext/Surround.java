@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 任务运行时围绕扩展点运行，提供扩展点
+ *
+ * @author poying
  */
 public interface Surround {
 
@@ -16,17 +18,22 @@ public interface Surround {
 
     /**
      * 任务运行前运行
+     * 
+     * @param context 任务执行上下文
      */
     void before(JobExecutionContext context);
 
     /**
      * 任务运行后运行
+     * 
+     * @param context 任务执行上下文
      */
     void after(JobExecutionContext context);
 
     /**
-     * 在{@link this#before}和{@link this#after}都执行完之后运行
+     * 在before和after都执行完之后运行
      *
+     * @param context 任务执行上下文
      */
     void integration(JobExecutionContext context);
 

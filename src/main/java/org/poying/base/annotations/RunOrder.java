@@ -14,8 +14,18 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RunOrder {
 
+    /**
+     * before阶段的执行顺序
+     * 
+     * @return 执行顺序值
+     */
     int before() default 0;
     
+    /**
+     * after阶段的执行顺序
+     * 
+     * @return 执行顺序值
+     */
     int after() default 0;
 
 }

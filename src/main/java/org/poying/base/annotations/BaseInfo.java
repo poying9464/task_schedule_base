@@ -14,8 +14,18 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface BaseInfo {
 
+    /**
+     * 依赖的任务
+     * 
+     * @return 依赖的任务数组
+     */
     String[] dependOn() default {};
 
+    /**
+     * 依赖的任务组
+     * 
+     * @return 依赖的任务组数组
+     */
     String[] dependOnGroup() default {};
 
 

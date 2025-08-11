@@ -22,11 +22,20 @@ import java.util.List;
  * 1. 继承BaseJob类
  * 2. 实现executeJob方法编写具体任务逻辑
  * 3. 任务会自动获得独立的日志文件，文件名为task_schedule_任务类名.log
+ *
+ * @author poying
+ * </p>
  */
 public abstract class BaseJob implements Job {
 
+    /**
+     * 日志记录器
+     */
     protected Logger logger;
 
+    /**
+     * 构造函数，初始化日志记录器
+     */
     public BaseJob() {
         this.logger = LoggerFactory.getLogger(this.getClass());
     }
