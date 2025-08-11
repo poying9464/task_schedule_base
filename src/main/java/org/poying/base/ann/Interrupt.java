@@ -1,4 +1,4 @@
-package org.poying.base.annotations;
+package org.poying.base.ann;
 
 import org.poying.base.ext.DefaultInterruptHandler;
 import org.poying.base.ext.InterruptHandler;

@@ -1,4 +1,4 @@
-package org.poying.base.annotations;
+package org.poying.base.ann;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

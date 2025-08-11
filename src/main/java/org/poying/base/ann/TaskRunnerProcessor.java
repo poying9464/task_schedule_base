@@ -1,4 +1,4 @@
-package org.poying.base.annotations;
+package org.poying.base.ann;
 
 import org.poying.base.ext.Surround;
 import java.lang.annotation.ElementType;

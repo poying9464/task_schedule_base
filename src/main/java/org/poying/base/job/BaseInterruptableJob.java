@@ -1,6 +1,6 @@
 package org.poying.base.job;
 
-import org.poying.base.annotations.Interrupt;
+import org.poying.base.ann.Interrupt;
 import org.poying.base.e.SurroundWithOrder;
 import org.poying.base.ext.InterruptHandler;
 import org.quartz.InterruptableJob;
@@ -131,7 +131,7 @@ public abstract class BaseInterruptableJob implements Job, InterruptableJob {
      */
     private List<SurroundWithOrder> getAscendingOrderSurrounds() {
         List<org.poying.base.ext.Surround> surrounds = new ArrayList<>();
-        org.poying.base.annotations.TaskRunnerProcessor taskRunnerProcessor = this.getClass().getAnnotation(org.poying.base.annotations.TaskRunnerProcessor.class);
+        org.poying.base.ann.TaskRunnerProcessor taskRunnerProcessor = this.getClass().getAnnotation(org.poying.base.ann.TaskRunnerProcessor.class);
 
         if (taskRunnerProcessor != null) {
             Class<? extends org.poying.base.ext.Surround>[] surroundClasses = taskRunnerProcessor.surrounds();
@@ -147,7 +147,7 @@ public abstract class BaseInterruptableJob implements Job, InterruptableJob {
         for (int i = 0; i < surrounds.size(); i++) {
             org.poying.base.ext.Surround surround = surrounds.get(i);
             int order = i; // 默认使用索引作为顺序值，避免Integer.MAX_VALUE问题
-            org.poying.base.annotations.RunOrder runOrder = surround.getClass().getAnnotation(org.poying.base.annotations.RunOrder.class);
+            org.poying.base.ann.RunOrder runOrder = surround.getClass().getAnnotation(org.poying.base.ann.RunOrder.class);
             if (runOrder != null) {
                 order = runOrder.before();
             }
