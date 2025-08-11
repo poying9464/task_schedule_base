@@ -6,17 +6,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 用于标记任务的基本信息
+ * 指定执行的顺序
  *
- * @author poying
+ * @author panyu
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface BaseInfo {
+public @interface RunOrder {
 
-    String[] dependOn() default {};
-
-    String[] dependOnGroup() default {};
-
+    int before() default 0;
+    
+    int after() default 0;
 
 }

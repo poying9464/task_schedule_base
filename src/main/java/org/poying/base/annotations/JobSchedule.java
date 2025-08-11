@@ -8,6 +8,8 @@ import java.lang.annotation.Target;
 /**
  * 用于定义任务调度计划的注解
  * 可以指定cron表达式或简单调度参数
+ *
+ * @author poying
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

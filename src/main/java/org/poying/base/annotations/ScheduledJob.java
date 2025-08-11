@@ -8,6 +8,8 @@ import java.lang.annotation.Target;
 /**
  * 用于标记Quartz任务的注解
  * 可以定义任务的名称、描述、组等元信息
+ *
+ * @author poying
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

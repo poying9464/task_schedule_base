@@ -1,11 +1,17 @@
 package org.poying.base;
 
+import org.poying.base.ext.Surround;
+import org.poying.base.annotations.RunOrder;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * 所有任务的基类，提供统一的日志处理功能
@@ -19,6 +25,8 @@ import org.slf4j.MDC;
 public abstract class BaseJob implements Job {
     
     protected Logger logger;
+
+    private List<Surround> surrounds;
     
     public BaseJob() {
         this.logger = LoggerFactory.getLogger(this.getClass());
@@ -29,7 +37,8 @@ public abstract class BaseJob implements Job {
         // 从任务类名中提取任务名称，用于日志文件命名
         String jobName = this.getClass().getSimpleName();
         MDC.put("jobName", jobName);
-        
+        context.put("task_schedule_job_name_$9527", jobName);
+        before(context);
         try {
             // 调用具体的任务执行逻辑
             executeJob(context);
@@ -37,8 +46,63 @@ public abstract class BaseJob implements Job {
             // 清理MDC上下文
             MDC.clear();
         }
+        after(context);
     }
-    
+
+    /**
+     * 任务执行完成后的逻辑增强
+     * @param context ctx
+     */
+    private void after(JobExecutionContext context) {
+        if (surrounds != null) {
+            // 创建一个新的列表用于排序，避免修改原始列表
+            List<SurroundWithOrder> surroundsWithOrder = new ArrayList<>();
+            for (int i = 0; i < surrounds.size(); i++) {
+                Surround surround = surrounds.get(i);
+                int order = i; // 默认使用索引作为顺序值，避免Integer.MAX_VALUE问题
+                RunOrder runOrder = surround.getClass().getAnnotation(RunOrder.class);
+                if (runOrder != null) {
+                    order = runOrder.after();
+                }
+                surroundsWithOrder.add(new SurroundWithOrder(surround, order));
+            }
+            
+            // 按照order值降序排序
+            surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
+            
+            for (SurroundWithOrder surroundWithOrder : surroundsWithOrder) {
+                surroundWithOrder.surround.after(context);
+            }
+        }
+    }
+
+    /**
+     * 任务执行前的逻辑增强
+     * @param context  ctx
+     */
+    private void before(JobExecutionContext context) {
+        if (surrounds != null) {
+            // 创建一个新的列表用于排序，避免修改原始列表
+            List<SurroundWithOrder> surroundsWithOrder = new ArrayList<>();
+            for (int i = 0; i < surrounds.size(); i++) {
+                Surround surround = surrounds.get(i);
+                int order = i; // 默认使用索引作为顺序值，避免Integer.MAX_VALUE问题
+                RunOrder runOrder = surround.getClass().getAnnotation(RunOrder.class);
+                if (runOrder != null) {
+                    order = runOrder.before();
+                }
+                surroundsWithOrder.add(new SurroundWithOrder(surround, order));
+            }
+            
+            // 按照order值升序排序
+            surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
+            
+            for (SurroundWithOrder surroundWithOrder : surroundsWithOrder) {
+                surroundWithOrder.surround.before(context);
+            }
+        }
+    }
+
     /**
      * 具体的任务执行逻辑，由子类实现
      * 
@@ -46,4 +110,26 @@ public abstract class BaseJob implements Job {
      * @throws JobExecutionException 任务执行异常
      */
     protected abstract void executeJob(JobExecutionContext context) throws JobExecutionException;
+    
+    /**
+     * 设置Surround列表
+     * 
+     * @param surrounds Surround列表
+     */
+    public void setSurrounds(List<Surround> surrounds) {
+        this.surrounds = surrounds;
+    }
+    
+    /**
+     * 用于包装Surround和其执行顺序的内部类
+     */
+    private static class SurroundWithOrder {
+        final Surround surround;
+        final int order;
+        
+        public SurroundWithOrder(Surround surround, int order) {
+            this.surround = surround;
+            this.order = order;
+        }
+    }
 }
