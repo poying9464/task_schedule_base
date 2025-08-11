@@ -23,34 +23,40 @@ import java.util.List;
  * 3. 任务会自动获得独立的日志文件，文件名为task_schedule_任务类名.log
  */
 public abstract class BaseJob implements Job {
-    
+
     protected Logger logger;
 
     private List<Surround> surrounds;
-    
+
     public BaseJob() {
         this.logger = LoggerFactory.getLogger(this.getClass());
     }
-    
+
     @Override
     public final void execute(JobExecutionContext context) throws JobExecutionException {
         // 从任务类名中提取任务名称，用于日志文件命名
         String jobName = this.getClass().getSimpleName();
         MDC.put("jobName", jobName);
         context.put("task_schedule_job_name_$9527", jobName);
-        before(context);
+
         try {
-            // 调用具体的任务执行逻辑
-            executeJob(context);
+            before(context);
+            try {
+                // 调用具体的任务执行逻辑
+                executeJob(context);
+            } finally {
+                // 清理MDC上下文前先执行after方法
+                after(context);
+            }
         } finally {
-            // 清理MDC上下文
+            // 最后清理MDC上下文
             MDC.clear();
         }
-        after(context);
     }
 
     /**
      * 任务执行完成后的逻辑增强
+     *
      * @param context ctx
      */
     private void after(JobExecutionContext context) {
@@ -66,10 +72,10 @@ public abstract class BaseJob implements Job {
                 }
                 surroundsWithOrder.add(new SurroundWithOrder(surround, order));
             }
-            
+
             // 按照order值降序排序
             surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
-            
+
             for (SurroundWithOrder surroundWithOrder : surroundsWithOrder) {
                 surroundWithOrder.surround.after(context);
             }
@@ -78,7 +84,8 @@ public abstract class BaseJob implements Job {
 
     /**
      * 任务执行前的逻辑增强
-     * @param context  ctx
+     *
+     * @param context ctx
      */
     private void before(JobExecutionContext context) {
         if (surrounds != null) {
@@ -93,10 +100,10 @@ public abstract class BaseJob implements Job {
                 }
                 surroundsWithOrder.add(new SurroundWithOrder(surround, order));
             }
-            
+
             // 按照order值升序排序
             surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
-            
+
             for (SurroundWithOrder surroundWithOrder : surroundsWithOrder) {
                 surroundWithOrder.surround.before(context);
             }
@@ -105,31 +112,24 @@ public abstract class BaseJob implements Job {
 
     /**
      * 具体的任务执行逻辑，由子类实现
-     * 
+     *
      * @param context 任务执行上下文
      * @throws JobExecutionException 任务执行异常
      */
     protected abstract void executeJob(JobExecutionContext context) throws JobExecutionException;
-    
+
     /**
      * 设置Surround列表
-     * 
+     *
      * @param surrounds Surround列表
      */
     public void setSurrounds(List<Surround> surrounds) {
         this.surrounds = surrounds;
     }
-    
+
     /**
      * 用于包装Surround和其执行顺序的内部类
      */
-    private static class SurroundWithOrder {
-        final Surround surround;
-        final int order;
-        
-        public SurroundWithOrder(Surround surround, int order) {
-            this.surround = surround;
-            this.order = order;
-        }
+    private record SurroundWithOrder(Surround surround, int order) {
     }
 }
