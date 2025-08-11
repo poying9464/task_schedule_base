@@ -1,26 +1,29 @@
-package org.poying.base;
+package org.poying.base.job;
 
-import org.poying.base.ext.Surround;
-import org.poying.base.annotations.RunOrder;
-import org.poying.base.annotations.TaskRunnerProcessor;
+import org.poying.base.annotations.Interrupt;
+import org.poying.base.e.SurroundWithOrder;
+import org.poying.base.ext.InterruptHandler;
+import org.quartz.InterruptableJob;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.quartz.UnableToInterruptJobException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 /**
- * 所有任务的基类，提供统一的日志处理功能
+ * 可中断任务的基类，提供统一的日志处理功能和中断处理机制
  * 通过MDC机制实现每个任务单独的日志文件。
  * 
  * <p>使用示例：</p>
  * <pre>
- * public class MyJob extends BaseJob {
+ * public class MyJob extends BaseInterruptableJob {
  *     {@literal @}Override
  *     protected void executeJob(JobExecutionContext context) {
  *         logger.info("Executing job");
@@ -34,23 +37,29 @@ import java.util.List;
  * 
  * @author poying
  */
-public abstract class BaseJob implements Job {
+public abstract class BaseInterruptableJob implements Job, InterruptableJob {
 
     /**
      * 日志记录器
      */
     protected Logger logger;
 
+    // 使用ThreadLocal保存执行上下文，以便在interrupt方法中使用
+    private static final ThreadLocal<JobExecutionContext> contextHolder = new ThreadLocal<>();
+
     /**
      * 构造函数，初始化日志记录器。
      * 使用子类的实际类型作为日志名称
      */
-    public BaseJob() {
+    public BaseInterruptableJob() {
         this.logger = LoggerFactory.getLogger(this.getClass());
     }
 
     @Override
     public final void execute(JobExecutionContext context) throws JobExecutionException {
+        // 保存上下文到ThreadLocal
+        contextHolder.set(context);
+
         // 从任务类名中提取任务名称，用于日志文件命名
         String jobName = this.getClass().getSimpleName();
         MDC.put("jobName", jobName);
@@ -68,6 +77,7 @@ public abstract class BaseJob implements Job {
         } finally {
             // 最后清理MDC上下文
             integration(context);
+            contextHolder.remove();
             MDC.clear();
         }
     }
@@ -82,7 +92,7 @@ public abstract class BaseJob implements Job {
         // 创建一个新的列表用于排序，避免修改原始列表
 
         for (SurroundWithOrder surroundWithOrder : surrounds) {
-            surroundWithOrder.surround.integration(context);
+            surroundWithOrder.surround().integration(context);
         }
     }
 
@@ -96,7 +106,7 @@ public abstract class BaseJob implements Job {
         // 创建一个新的列表用于排序，避免修改原始列表
 
         for (SurroundWithOrder surroundWithOrder : surrounds) {
-            surroundWithOrder.surround.after(context);
+            surroundWithOrder.surround().after(context);
         }
     }
 
@@ -110,7 +120,7 @@ public abstract class BaseJob implements Job {
         // 创建一个新的列表用于排序，避免修改原始列表
 
         for (SurroundWithOrder surroundWithOrder : surrounds) {
-            surroundWithOrder.surround.before(context);
+            surroundWithOrder.surround().before(context);
         }
     }
 
@@ -120,24 +130,24 @@ public abstract class BaseJob implements Job {
      * @return 带排序信息的Surround包装列表
      */
     private List<SurroundWithOrder> getAscendingOrderSurrounds() {
-        List<Surround> surrounds = new ArrayList<>();
-        TaskRunnerProcessor taskRunnerProcessor = this.getClass().getAnnotation(TaskRunnerProcessor.class);
+        List<org.poying.base.ext.Surround> surrounds = new ArrayList<>();
+        org.poying.base.annotations.TaskRunnerProcessor taskRunnerProcessor = this.getClass().getAnnotation(org.poying.base.annotations.TaskRunnerProcessor.class);
 
         if (taskRunnerProcessor != null) {
-            Class<? extends Surround>[] surroundClasses = taskRunnerProcessor.surrounds();
-            for (Class<? extends Surround> surroundClass : surroundClasses) {
+            Class<? extends org.poying.base.ext.Surround>[] surroundClasses = taskRunnerProcessor.surrounds();
+            for (Class<? extends org.poying.base.ext.Surround> surroundClass : surroundClasses) {
                 try {
                     surrounds.add(surroundClass.getDeclaredConstructor().newInstance());
                 } catch (Exception e) {
-                    logger.error("无法实例化Surround类: {}", surroundClass.getName(), e);
+                    logger.error("Unable to instantiated Surround class: {}", surroundClass.getName(), e);
                 }
             }
         }
         List<SurroundWithOrder> surroundsWithOrder = new ArrayList<>();
         for (int i = 0; i < surrounds.size(); i++) {
-            Surround surround = surrounds.get(i);
+            org.poying.base.ext.Surround surround = surrounds.get(i);
             int order = i; // 默认使用索引作为顺序值，避免Integer.MAX_VALUE问题
-            RunOrder runOrder = surround.getClass().getAnnotation(RunOrder.class);
+            org.poying.base.annotations.RunOrder runOrder = surround.getClass().getAnnotation(org.poying.base.annotations.RunOrder.class);
             if (runOrder != null) {
                 order = runOrder.before();
             }
@@ -145,8 +155,27 @@ public abstract class BaseJob implements Job {
         }
 
         // 按照order值升序排序
-        surroundsWithOrder.sort(Comparator.comparingInt(o -> o.order));
+        surroundsWithOrder.sort(Comparator.comparingInt(SurroundWithOrder::order));
         return surroundsWithOrder;
+    }
+
+    @Override
+    public void interrupt() throws UnableToInterruptJobException {
+        Interrupt annotation = this.getClass().getAnnotation(Interrupt.class);
+        if (annotation != null) {
+            Class<? extends InterruptHandler> handler = annotation.handler();
+            try {
+                Constructor<? extends InterruptHandler> declaredConstructor = handler.getDeclaredConstructor();
+                InterruptHandler instance = declaredConstructor.newInstance();
+                // 传递上下文和异常信息到handle方法
+                JobExecutionContext context = contextHolder.get();
+                if (context != null) {
+                    instance.handle(context, new UnableToInterruptJobException("Job interrupted"));
+                }
+            } catch (Exception e) {
+                logger.error("InterruptHandler's class must have an constructor without param", e);
+            }
+        }
     }
 
     /**
@@ -157,10 +186,4 @@ public abstract class BaseJob implements Job {
      */
     protected abstract void executeJob(JobExecutionContext context) throws JobExecutionException;
 
-
-    /**
-     * 用于包装Surround和其执行顺序的内部类
-     */
-    private record SurroundWithOrder(Surround surround, int order) {
-    }
 }

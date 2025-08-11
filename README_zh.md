@@ -25,7 +25,7 @@ Task Schedule Base 是一个为 task_schedule 调度框架提供的扩展库，�
 ### 1. 创建任务类
 
 ```java
-import org.poying.base.BaseJob;
+import org.poying.base.job.BaseJob;
 import org.poying.base.annotations.ScheduledJob;
 import org.poying.base.annotations.JobSchedule;
 import org.quartz.JobExecutionContext;

@@ -25,7 +25,7 @@ Add the following dependency to your Maven project:
 ### 1. Create a Job Class
 
 ```java
-import org.poying.base.BaseJob;
+import org.poying.base.job.BaseJob;
 import org.poying.base.annotations.ScheduledJob;
 import org.poying.base.annotations.JobSchedule;
 import org.quartz.JobExecutionContext;
