@@ -16,15 +16,23 @@ import java.util.List;
 
 /**
  * 所有任务的基类，提供统一的日志处理功能
- * 通过MDC机制实现每个任务单独的日志文件
+ * 通过MDC机制实现每个任务单独的日志文件。
+ * 
+ * <p>使用示例：</p>
+ * <pre>
+ * public class MyJob extends BaseJob {
+ *     {@literal @}Override
+ *     protected void executeJob(JobExecutionContext context) {
+ *         logger.info("Executing job");
+ *         // 任务逻辑在这里
+ *     }
+ * }
+ * </pre>
  * <p>
- * 使用方法：
- * 1. 继承BaseJob类
- * 2. 实现executeJob方法编写具体任务逻辑
- * 3. 任务会自动获得独立的日志文件，文件名为task_schedule_任务类名.log
- *
- * @author poying
+ * 日志文件会自动命名为task_schedule_任务类名.log
  * </p>
+ * 
+ * @author poying
  */
 public abstract class BaseJob implements Job {
 
@@ -34,7 +42,8 @@ public abstract class BaseJob implements Job {
     protected Logger logger;
 
     /**
-     * 构造函数，初始化日志记录器
+     * 构造函数，初始化日志记录器。
+     * 使用子类的实际类型作为日志名称
      */
     public BaseJob() {
         this.logger = LoggerFactory.getLogger(this.getClass());
@@ -106,9 +115,9 @@ public abstract class BaseJob implements Job {
     }
 
     /**
-     * 从@TaskRunnerProcessor注解中获取Surround列表
+     * 从@TaskRunnerProcessor注解中获取Surround实例列表，并包装为带排序信息的对象
      *
-     * @return Surround列表
+     * @return 带排序信息的Surround包装列表
      */
     private List<SurroundWithOrder> getAscendingOrderSurrounds() {
         List<Surround> surrounds = new ArrayList<>();
