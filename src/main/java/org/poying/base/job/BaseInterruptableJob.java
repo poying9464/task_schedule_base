@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 可中断任务的基类，提供统一的日志处理功能和中断处理机制
  * 通过MDC机制实现每个任务单独的日志文件。
- * 
+ *
  * <p>使用示例：</p>
  * <pre>
  * public class MyJob extends BaseInterruptableJob {
@@ -34,7 +34,7 @@ import java.util.List;
  * <p>
  * 日志文件会自动命名为task_schedule_任务类名.log
  * </p>
- * 
+ *
  * @author poying
  */
 public abstract class BaseInterruptableJob implements Job, InterruptableJob {
@@ -92,7 +92,10 @@ public abstract class BaseInterruptableJob implements Job, InterruptableJob {
         // 创建一个新的列表用于排序，避免修改原始列表
 
         for (SurroundWithOrder surroundWithOrder : surrounds) {
-            surroundWithOrder.surround().integration(context);
+            try {
+                surroundWithOrder.surround().integration(context);
+            } catch (Exception ignore) {
+            }
         }
     }
 
@@ -106,7 +109,10 @@ public abstract class BaseInterruptableJob implements Job, InterruptableJob {
         // 创建一个新的列表用于排序，避免修改原始列表
 
         for (SurroundWithOrder surroundWithOrder : surrounds) {
-            surroundWithOrder.surround().after(context);
+            try {
+                surroundWithOrder.surround().after(context);
+            } catch (Exception ignore) {
+            }
         }
     }
 
@@ -120,7 +126,10 @@ public abstract class BaseInterruptableJob implements Job, InterruptableJob {
         // 创建一个新的列表用于排序，避免修改原始列表
 
         for (SurroundWithOrder surroundWithOrder : surrounds) {
-            surroundWithOrder.surround().before(context);
+            try {
+                surroundWithOrder.surround().before(context);
+            } catch (Exception ignore) {
+            }
         }
     }
 
