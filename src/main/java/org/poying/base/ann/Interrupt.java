@@ -1,6 +1,6 @@
 package org.poying.base.ann;
 
-import org.poying.base.ext.DefaultInterruptHandler;
+import org.poying.base.ext.pyext.DefaultInterruptHandler;
 import org.poying.base.ext.InterruptHandler;
 
 import java.lang.annotation.ElementType;
