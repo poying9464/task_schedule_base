@@ -8,6 +8,17 @@ import java.lang.annotation.Target;
 
 /**
  * 任务运行器处理器注解
+ *
+ * <code>
+ *     @TaskRunnerProcessor(surrounds = {TaskResourcesSurround.class})
+ *     public class TaskRunnerProcessorImpl extends BaseJob {
+ *         @Override
+ *         public void execute(JobExecutionContext context) throws JobExecutionException {
+ *             //  task detail
+ *         }
+ *     }
+ * </code>
+ *
  */
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

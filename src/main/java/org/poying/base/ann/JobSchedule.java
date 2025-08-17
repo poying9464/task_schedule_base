@@ -16,7 +16,6 @@ import java.lang.annotation.Target;
 public @interface JobSchedule {
 
 
-
     /**
      * Cron表达式
      * @return cron表达式

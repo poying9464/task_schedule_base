@@ -1,16 +1,20 @@
 # Task Schedule Base
 
-Task Schedule Base is an extension library for the task_schedule framework, including base job classes, custom annotations, and job registration tools, designed to simplify task management in task_schedule.
+Task Schedule Base 是一个基于 Quartz 的任务调度框架扩展库，旨在简化任务开发和管理。
 
-## Features
+## 功能特性
 
-1. **BaseJob Class** - Provides unified logging functionality
-2. **Custom Annotations** - Simplifies job and scheduling configuration
-3. **Job Registration Tool** - Supports annotation-based automatic job registration
+- 提供统一的日志处理功能的 BaseJob 基类
+- 自定义注解简化任务和调度配置
+- 支持基于注解的自动任务注册
+- 自动日志配置（每个任务独立日志文件）
+- MDC 支持实现任务日志隔离
+- 统一异常处理框架
+- 支持 Cron 表达式和简单调度间隔配置
 
-## Installation
+## 安装
 
-Add the following dependency to your Maven project:
+### Maven
 
 ```xml
 <dependency>
@@ -20,132 +24,227 @@ Add the following dependency to your Maven project:
 </dependency>
 ```
 
-## Usage
+由于本组件将 Quartz 和 SLF4J 的依赖作用域设置为 `provided`，您还需要显式声明这些依赖：
 
-### 1. Create a Job Class
+```xml
+<dependency>
+    <groupId>org.quartz-scheduler</groupId>
+    <artifactId>quartz</artifactId>
+    <version>2.3.2</version>
+</dependency>
+
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>2.0.10</version>
+</dependency>
+```
+
+## Spring Boot 自动配置
+
+本库支持在 Spring Boot 项目中自动配置 Quartz 调度器。要启用自动配置，请在您的 Spring Boot 项目中添加以下依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+```
+
+然后在 `application.properties` 或 `application.yml` 中配置 Quartz 相关参数：
+
+### application.properties
+
+```properties
+# Quartz配置
+poying.quartz.scheduler.instance-name=MyQuartzScheduler
+poying.quartz.scheduler.instance-id=AUTO
+
+# 线程池配置
+poying.quartz.thread-pool.class=org.quartz.simpl.SimpleThreadPool
+poying.quartz.thread-pool.thread-count=5
+poying.quartz.thread-pool.thread-priority=5
+
+# JobStore配置
+poying.quartz.job-store.class=org.quartz.impl.jdbcjobstore.JobStoreTX
+poying.quartz.job-store.driver-delegate-class=org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+poying.quartz.job-store.table-prefix=QRTZ_
+poying.quartz.job-store.clustered=false
+poying.quartz.job-store.use-properties=false
+poying.quartz.job-store.data-source=myDS
+
+# 数据源配置（可选，如果不配置则使用Spring Boot的spring.datasource配置）
+# poying.quartz.data-source.my-ds.driver=com.mysql.cj.jdbc.Driver
+# poying.quartz.data-source.my-ds.url=jdbc:mysql://localhost:3306/quartz
+# poying.quartz.data-source.my-ds.user=root
+# poying.quartz.data-source.my-ds.password=password
+# poying.quartz.data-source.my-ds.max-connections=10
+# poying.quartz.data-source.my-ds.validation-query=select 1
+
+# Spring数据源配置（用于自动配置）
+spring.datasource.url=jdbc:mysql://localhost:3306/quartz
+spring.datasource.username=root
+spring.datasource.password=password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+```
+
+### application.yml
+
+```yaml
+poying:
+  quartz:
+    scheduler:
+      instance-name: MyQuartzScheduler
+      instance-id: AUTO
+    thread-pool:
+      class: org.quartz.simpl.SimpleThreadPool
+      thread-count: 5
+      thread-priority: 5
+    job-store:
+      class: org.quartz.impl.jdbcjobstore.JobStoreTX
+      driver-delegate-class: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+      table-prefix: QRTZ_
+      clustered: false
+      use-properties: false
+      data-source: myDS
+    # 数据源配置（可选，如果不配置则使用Spring Boot的spring.datasource配置）
+    # data-source:
+    #   my-ds:
+    #     driver: com.mysql.cj.jdbc.Driver
+    #     url: jdbc:mysql://localhost:3306/quartz
+    #     user: root
+    #     password: password
+    #     max-connections: 10
+    #     validation-query: select 1
+
+# Spring数据源配置（用于自动配置）
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/quartz
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+```
+
+## 使用spring-jdbc和spring-core
+
+本库中的自动配置功能依赖于spring-jdbc和spring-core，使用本库的项目需要提供这些依赖。
+
+如果您使用的是Spring Boot项目，可以通过添加以下依赖来提供这些组件：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+```
+
+如果您使用的是传统的Spring项目，则需要添加以下依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-core</artifactId>
+    <version>6.1.11</version>
+</dependency>
+
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-jdbc</artifactId>
+    <version>6.1.11</version>
+</dependency>
+```
+
+## 使用示例
 
 ```java
-import org.poying.base.job.BaseJob;
-import org.poying.base.ann.ScheduledJob;
-import org.poying.base.ann.JobSchedule;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-
-@ScheduledJob(
-        name = "SampleTask",
-        group = "SAMPLE_GROUP",
-        description = "This is a sample task",
-        taskId = "202518221236"
-)
-@JobSchedule(
-        cron = "0 0/5 * * * ?",
-        startNow = true
-)
-public class SampleTask extends BaseJob {
-
+@ScheduledJob("myJob")
+@JobSchedule(cron = "0 0 12 * * ?") // 每天中午12点执行
+public class MyJob extends BaseJob {
     @Override
     protected void executeJob(JobExecutionContext context) throws JobExecutionException {
-        logger.info("Executing sample task");
-        // Implement your specific business logic here
+        // 任务逻辑
+        System.out.println("执行任务: " + new Date());
     }
 }
 ```
 
-### 2. Register the Job
+注册任务:
 
 ```java
-import org.quartz.Scheduler;
-
-// Get scheduler instance
-Scheduler scheduler = ...;
-
-// Register job
-JobRegistrar.registerAnnotatedJob(scheduler, SampleTask.class);
+Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+JobRegistrar.registerJob(scheduler, MyJob.class);
+scheduler.start();
 ```
 
-## BaseJob Class
+## 核心类说明
 
-[BaseJob](file:///D:/develop_pro/coffee/task_schedule/quartz-extensions/src/main/java/org/quartz/extensions/BaseJob.java) is the base class for all jobs, providing the following features:
+### BaseJob
 
-1. **Automatic Log Configuration** - Each job automatically gets its own log file
-2. **MDC Support** - Task log isolation through MDC mechanism
-3. **Unified Exception Handling** - Provides basic exception handling framework
-
-## Custom Annotations
+所有任务的基础类，提供日志处理、异常处理等基础功能。
 
 ### @ScheduledJob
 
-Used to mark and configure basic job information:
-
-- `name` - Job name
-- `group` - Job group name
-- `description` - Job description
-- `storeDurably` - Whether to store persistently
+用于标记任务类的注解，指定任务名称。
 
 ### @JobSchedule
 
-Used to define the job scheduling plan:
+用于配置任务调度计划的注解，支持 Cron 表达式和简单调度间隔配置。
 
-- `cron` - Cron expression
-- `intervalInSeconds` - Simple scheduling interval (seconds)
-- `repeatCount` - Number of repetitions
-- `startNow` - Whether to start immediately
+### JobRegistrar
 
-## Job Registration Tool
+注解驱动的任务注册工具，根据注解注册任务到 Quartz 调度器。
 
-[JobRegistrar](file:///D:/develop_pro/coffee/task_schedule/quartz-extensions/src/main/java/org/quartz/extensions/JobRegistrar.java) provides annotation-based automatic job registration functionality:
+## 日志配置
 
-```java
-// Register a single job
-JobRegistrar.registerAnnotatedJob(scheduler, YourJobClass.class);
-```
-
-## Logging Configuration
-
-Jobs automatically get independent log files with the following naming convention:
-- `task_schedule_JobClassName.log` - Current log file
-- `task_schedule_JobClassName.yyyy-MM-dd.i.log` - Historical log files
-
-To enable this feature, add the corresponding appender configuration in your logback configuration:
+推荐使用 Logback 作为 SLF4J 的实现，以下是一个配置示例：
 
 ```xml
-<appender name="TASK_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/task_schedule_%mdc{jobName:-default}.log</file>
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-        <fileNamePattern>logs/task_schedule_%mdc{jobName:-default}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-        <maxFileSize>100MB</maxFileSize>
-        <maxHistory>30</maxHistory>
-    </rollingPolicy>
-    <encoder>
-        <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-    </encoder>
-</appender>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
 
-<logger name="your.job.package" level="INFO" additivity="false">
-    <appender-ref ref="TASK_FILE"/>
-</logger>
+    <appender name="TASK_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/task.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/task.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="TASK_FILE" />
+    </root>
+</configuration>
 ```
 
-## Build and Deployment
+## 构建和部署
 
-### Build Project
+构建项目:
 
 ```bash
 mvn clean package
 ```
 
-### Deploy to Local Repository
+发布到本地仓库:
 
 ```bash
 mvn clean install
 ```
 
-### Deploy to Remote Repository
+发布到远程仓库:
 
 ```bash
 mvn clean deploy
 ```
 
-## License
+## 许可证
 
 MIT
