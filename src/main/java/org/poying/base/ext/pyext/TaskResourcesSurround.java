@@ -1,14 +1,17 @@
 package org.poying.base.ext.pyext;
 
 import org.poying.base.ann.RunOrder;
+import org.poying.base.db.TaskResourceInfoDao;
 import org.poying.base.ext.Surround;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StopWatch;
 
+import javax.sql.DataSource;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.ThreadMXBean;
@@ -35,24 +38,39 @@ public class TaskResourcesSurround implements Surround, JobListener {
     // 用于任务增强类方式的线程本地变量
     private final ThreadLocal<TaskMonitor> threadLocalMonitor = new ThreadLocal<>();
 
+    private TaskResourceInfo taskResourceInfo;
+
+    @Autowired
+    private DataSource dataSource;
+
     @Override
     public String getName() {
         return LISTENER_NAME;
     }
 
     @Override
-    public void before(JobExecutionContext context) {
-        // noting to do
+    public final void before(JobExecutionContext context) {
+        String jobKey = context.getJobDetail().getKey().toString();
+        String taskName = context.getJobDetail().getKey().getName();
+        TaskMonitor monitor = new TaskMonitor(taskName, jobKey);
+        monitorMap.put(jobKey, monitor);
+        // 将监控实例同时存储到Map和ThreadLocal中，确保两种方式都能访问到同一个实例
+        threadLocalMonitor.set(monitor);
     }
 
     @Override
-    public void after(JobExecutionContext context) {
-        // nothing to do
+    public final void after(JobExecutionContext context) {
+        String jobKey = context.getJobDetail().getKey().toString();
+        TaskMonitor monitor = monitorMap.remove(jobKey);
+        threadLocalMonitor.remove();
+        taskResourceInfo = monitor.getTaskResourceInfo();
     }
 
     @Override
-    public void integration(JobExecutionContext context) {
-        // 任务增强类的整合方法可以为空
+    public final void integration(JobExecutionContext context) {
+        // save resource info
+        // 将监控数据保存到数据库中
+        TaskResourceInfoDao.save(taskResourceInfo, dataSource);
     }
 
     /**
@@ -63,15 +81,9 @@ public class TaskResourcesSurround implements Surround, JobListener {
     @Override
     public void jobToBeExecuted(JobExecutionContext context) {
         String jobKey = context.getJobDetail().getKey().toString();
-        String taskName = context.getJobDetail().getKey().getName();
 
         // 通过Quartz监听器方式启动监控
-        TaskMonitor monitor = new TaskMonitor(taskName);
-        monitor.start();
-
-        // 将监控实例同时存储到Map和ThreadLocal中，确保两种方式都能访问到同一个实例
-        monitorMap.put(jobKey, monitor);
-        threadLocalMonitor.set(monitor);
+        monitorMap.get(jobKey).start();
 
         logger.debug("开始监控任务资源: {}", jobKey);
     }
@@ -102,9 +114,7 @@ public class TaskResourcesSurround implements Surround, JobListener {
     public void jobWasExecuted(JobExecutionContext context, JobExecutionException jobException) {
         String jobKey = context.getJobDetail().getKey().toString();
 
-        // 获取并移除监控实例
-        TaskMonitor monitor = monitorMap.remove(jobKey);
-        threadLocalMonitor.remove();
+        TaskMonitor monitor = monitorMap.get(jobKey);
 
         if (monitor != null) {
             try {
@@ -123,23 +133,12 @@ public class TaskResourcesSurround implements Surround, JobListener {
         logger.debug("任务 {} 执行完成", jobKey);
     }
 
-    /**
-     * 获取当前线程的任务监控信息（用于在其他地方访问监控数据）
-     *
-     * @return 当前任务监控信息
-     */
-    public TaskResourceInfo getCurrentTaskResourceInfo() {
-        TaskMonitor monitor = threadLocalMonitor.get();
-        if (monitor != null) {
-            return monitor.getTaskResourceInfo();
-        }
-        return null;
-    }
 
     /**
      * 任务资源信息数据类
      */
     public static class TaskResourceInfo {
+        private final String jobKey;
         private final String taskName;
         private final long executionTimeMillis;
         private final long cpuTimeNanos;
@@ -147,8 +146,9 @@ public class TaskResourcesSurround implements Surround, JobListener {
         private final long maxMemoryUsedBytes;
         private final List<Long> memorySamples;
 
-        public TaskResourceInfo(String taskName, long executionTimeMillis, long cpuTimeNanos,
+        public TaskResourceInfo(String jobKey, String taskName, long executionTimeMillis, long cpuTimeNanos,
                                 long memoryUsedBytes, long maxMemoryUsedBytes, List<Long> memorySamples) {
+            this.jobKey = jobKey;
             this.taskName = taskName;
             this.executionTimeMillis = executionTimeMillis;
             this.cpuTimeNanos = cpuTimeNanos;
@@ -189,6 +189,10 @@ public class TaskResourcesSurround implements Surround, JobListener {
         public List<Long> getMemorySamples() {
             return memorySamples;
         }
+
+        public String getJobKey() {
+            return jobKey;
+        }
     }
 
     /**
@@ -212,9 +216,12 @@ public class TaskResourcesSurround implements Surround, JobListener {
         // 用于存储任务名称
         private final String taskName;
 
-        public TaskMonitor(String taskName) {
+        private final String jobKey;
+
+        public TaskMonitor(String taskName, String jobKey) {
             this.taskName = taskName;
             this.stopWatch = new StopWatch("TaskResources-" + taskName);
+            this.jobKey = jobKey;
         }
 
         public void start() {
@@ -278,7 +285,7 @@ public class TaskResourcesSurround implements Surround, JobListener {
         public TaskResourceInfo getTaskResourceInfo() {
             long executionTime = stopWatch != null ? stopWatch.getTotalTimeMillis() : 0;
             long memoryUsed = memoryMXBean.getHeapMemoryUsage().getUsed() - startMemoryUsed;
-            return new TaskResourceInfo(taskName, executionTime, cpuTimeUsed,
+            return new TaskResourceInfo(jobKey, taskName, executionTime, cpuTimeUsed,
                     memoryUsed, maxMemoryUsed, new ArrayList<>(memorySamples));
         }
 

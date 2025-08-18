@@ -173,7 +173,7 @@ public class TaskScheduleProperties {
     }
     
     public static class DataSource {
-        private MyDS myDS = new MyDS();
+        private MyDS myDS;
         
         // Getters and setters
         public MyDS getMyDS() {

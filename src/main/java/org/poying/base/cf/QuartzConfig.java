@@ -4,6 +4,7 @@ import org.poying.base.ext.pyext.TaskResourcesSurround;
 import org.quartz.spi.TriggerFiredBundle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.lang.NonNull;
@@ -28,6 +29,9 @@ public class QuartzConfig {
     
     @Autowired
     private TaskScheduleProperties taskScheduleProperties;
+
+    @Autowired
+    private DataSourceProperties dataSourceProperties;
 
     /**
      * 配置JobFactory，使Quartz能够使用Spring的依赖注入
@@ -86,12 +90,22 @@ public class QuartzConfig {
 
         // 数据源配置
         TaskScheduleProperties.DataSource.MyDS dataSourceConfig = taskScheduleProperties.getDataSource().getMyDS();
-        properties.put("org.quartz.dataSource.myDS.driver", dataSourceConfig.getDriver());
-        properties.put("org.quartz.dataSource.myDS.URL", dataSourceConfig.getUrl());
-        properties.put("org.quartz.dataSource.myDS.user", dataSourceConfig.getUser());
-        properties.put("org.quartz.dataSource.myDS.password", dataSourceConfig.getPassword());
-        properties.put("org.quartz.dataSource.myDS.maxConnections", String.valueOf(dataSourceConfig.getMaxConnections()));
-        properties.put("org.quartz.dataSource.myDS.validationQuery", dataSourceConfig.getValidationQuery());
+        if (dataSourceConfig != null) {
+            properties.put("org.quartz.dataSource.myDS.driver", dataSourceConfig.getDriver());
+            properties.put("org.quartz.dataSource.myDS.URL", dataSourceConfig.getUrl());
+            properties.put("org.quartz.dataSource.myDS.user", dataSourceConfig.getUser());
+            properties.put("org.quartz.dataSource.myDS.password", dataSourceConfig.getPassword());
+            properties.put("org.quartz.dataSource.myDS.maxConnections", String.valueOf(dataSourceConfig.getMaxConnections()));
+            properties.put("org.quartz.dataSource.myDS.validationQuery", dataSourceConfig.getValidationQuery());
+        } else {
+            // 使用springboot的数据源 从自动注入的dataSource读取相关配置参数
+            properties.put("org.quartz.dataSource.myDS.driver", dataSourceProperties.getDriverClassName());
+            properties.put("org.quartz.dataSource.myDS.URL", dataSourceProperties.getUrl());
+            properties.put("org.quartz.dataSource.myDS.user", dataSourceProperties.getUsername());
+            properties.put("org.quartz.dataSource.myDS.password", dataSourceProperties.getPassword());
+            properties.put("org.quartz.dataSource.myDS.maxConnections", "20");
+            properties.put("org.quartz.dataSource.myDS.validationQuery", "SELECT 1");
+        }
 
         factory.setQuartzProperties(properties);
         factory.setApplicationContext(applicationContext);
