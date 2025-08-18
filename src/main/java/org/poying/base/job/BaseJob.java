@@ -10,12 +10,12 @@ import org.quartz.JobExecutionContext;
 public abstract class BaseJob extends PyTask {
 
     @Override
-    public void afterInit(JobExecutionContext context) {
-
+    public final void afterInit(JobExecutionContext context) {
+        // 默认实现，防止子类重写此方法
     }
 
     @Override
-    public void afterFinally(JobExecutionContext context) {
-
+    public final void afterFinally(JobExecutionContext context) {
+        // 默认实现，防止子类重写此方法
     }
 }
