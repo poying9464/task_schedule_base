@@ -13,6 +13,11 @@ import org.springframework.scheduling.quartz.SpringBeanJobFactory;
 import javax.sql.DataSource;
 import java.util.Properties;
 
+/**
+ * Quartz配置
+ *
+ * @author poying
+ */
 public class QuartzConfig {
 
     @Autowired

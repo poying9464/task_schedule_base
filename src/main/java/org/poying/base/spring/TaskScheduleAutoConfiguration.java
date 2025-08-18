@@ -18,6 +18,8 @@ import java.sql.Driver;
 
 /**
  * Task Schedule自动配置类
+ *
+ * @author poying
  */
 @Configuration
 @ConditionalOnClass({Driver.class})

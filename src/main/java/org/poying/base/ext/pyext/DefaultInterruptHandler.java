@@ -5,6 +5,11 @@ import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 默认中断处理
+ *
+ * @author poying
+ */
 public class DefaultInterruptHandler implements InterruptHandler {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultInterruptHandler.class);

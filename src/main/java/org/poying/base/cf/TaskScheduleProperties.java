@@ -3,7 +3,11 @@ package org.poying.base.cf;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-
+/**
+ * Task schedule properties
+ *
+ * @author poying
+ */
 @Configuration
 @ConfigurationProperties(prefix = "poying.task")
 public class TaskScheduleProperties {
