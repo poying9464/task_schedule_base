@@ -18,22 +18,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * 所有任务的基类，提供统一的日志处理功能
- * 通过MDC机制实现每个任务单独的日志文件。
- *
- * <p>使用示例：</p>
- * <pre>
- * public class MyJob extends BaseJob {
- *     {@literal @}Override
- *     protected void executeJob(JobExecutionContext context) {
- *         logger.info("Executing job");
- *         // 任务逻辑在这里
- *     }
- * }
- * </pre>
- * <p>
- * 日志文件会自动命名为task_schedule_任务类名.log
- * </p>
+ * 任务抽象类，继承自Quartz的Job接口。
  *
  * @author poying
  */
