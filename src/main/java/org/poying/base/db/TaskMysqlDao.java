@@ -47,4 +47,8 @@ public class TaskMysqlDao {
     public static boolean isSuccessful(String jobKey, String taskName) {
         return true;
     }
+
+    public static boolean groupIsSuccessful(String group) {
+        return false;
+    }
 }
