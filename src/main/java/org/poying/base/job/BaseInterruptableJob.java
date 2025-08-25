@@ -30,7 +30,7 @@ import java.lang.reflect.Constructor;
  *
  * @author poying
  */
-public abstract class BaseInterruptableJob extends PyTask implements InterruptableJob {
+public abstract class BaseInterruptableJob extends PyJob implements InterruptableJob {
 
     /**
      * 日志记录器

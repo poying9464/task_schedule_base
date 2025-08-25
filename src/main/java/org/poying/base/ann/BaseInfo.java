@@ -1,5 +1,7 @@
 package org.poying.base.ann;
 
+import org.poying.base.job.BaseJob;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -19,7 +21,7 @@ public @interface BaseInfo {
      * 
      * @return 依赖的任务数组
      */
-    String[] dependOn() default {};
+    Class<? extends BaseJob>[] dependOn() default {};
 
     /**
      * 依赖的任务组

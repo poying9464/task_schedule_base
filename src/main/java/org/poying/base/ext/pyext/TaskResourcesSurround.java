@@ -49,21 +49,23 @@ public class TaskResourcesSurround implements Surround, JobListener {
     }
 
     @Override
-    public final void before(JobExecutionContext context) {
+    public final boolean before(JobExecutionContext context) {
         String jobKey = context.getJobDetail().getKey().toString();
         String taskName = context.getJobDetail().getKey().getName();
         TaskMonitor monitor = new TaskMonitor(taskName, jobKey);
         monitorMap.put(jobKey, monitor);
         // 将监控实例同时存储到Map和ThreadLocal中，确保两种方式都能访问到同一个实例
         threadLocalMonitor.set(monitor);
+        return true;
     }
 
     @Override
-    public final void after(JobExecutionContext context) {
+    public final boolean after(JobExecutionContext context) {
         String jobKey = context.getJobDetail().getKey().toString();
         TaskMonitor monitor = monitorMap.remove(jobKey);
         threadLocalMonitor.remove();
         taskResourceInfo = monitor.getTaskResourceInfo();
+        return true;
     }
 
     @Override

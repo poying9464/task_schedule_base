@@ -24,7 +24,7 @@ import org.quartz.JobExecutionContext;
  *
  * @author poying
  */
-public abstract class BaseJob extends PyTask {
+public abstract class BaseJob extends PyJob {
 
     @Override
     public final void afterInit(JobExecutionContext context) {

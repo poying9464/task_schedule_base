@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 
@@ -22,7 +23,7 @@ import java.util.List;
  *
  * @author poying
  */
-abstract class PyTask implements Job {
+abstract class PyJob implements Job {
 
     /**
      * 日志记录器
@@ -33,7 +34,7 @@ abstract class PyTask implements Job {
      * 构造函数，初始化日志记录器。
      * 使用子类的实际类型作为日志名称
      */
-    public PyTask() {
+    public PyJob() {
         this.logger = LoggerFactory.getLogger(this.getClass());
     }
 
@@ -42,16 +43,16 @@ abstract class PyTask implements Job {
         // 从任务类名中提取任务名称，用于日志文件命名
         init(context);
         try {
-            beforeExecute(context);
-            try {
-                // 调用具体的任务执行逻辑
-                executeJob(context);
-            } catch (Exception e) {
-                onException(e, context);
-            } finally {
-                // 清理MDC上下文前先执行after方法
-                afterExecute(context);
+            if (beforeExecute(context)) {
+                try {
+                    // 调用具体的任务执行逻辑
+                    executeJob(context);
+                } catch (Exception e) {
+                    onException(e, context);
+                }
             }
+            // 清理MDC上下文前先执行after方法
+            afterExecute(context);
         } finally {
             // 最后清理MDC上下文
             onFinally(context);
@@ -141,16 +142,24 @@ abstract class PyTask implements Job {
      *
      * @param context ctx
      */
-    private void afterExecute(JobExecutionContext context) {
+    private boolean afterExecute(JobExecutionContext context) {
         List<SurroundWithOrder> surrounds = getAscendingOrderSurrounds();
-        // 创建一个新的列表用于排序，避免修改原始列表
 
-        for (SurroundWithOrder surroundWithOrder : surrounds) {
+        BitSet results = new BitSet(surrounds.size());
+        for (int i = 0; i < surrounds.size(); i++) {
+            SurroundWithOrder surroundWithOrder = surrounds.get(i);
             try {
-                surroundWithOrder.surround().after(context);
-            } catch (Exception ignore) {
+                boolean result = surroundWithOrder.surround().after(context);
+                results.set(i, result);
+            } catch (Exception e) {
+                logger.warn("Exception occurred in surround: {}",
+                        surroundWithOrder.surround().getClass().getSimpleName(), e);
+                // 异常时默认设置为true
+                results.set(i, true);
             }
         }
+        // 检查是否所有位都被设置为true
+        return results.cardinality() == surrounds.size();
     }
 
     /**
@@ -158,16 +167,25 @@ abstract class PyTask implements Job {
      *
      * @param context ctx
      */
-    private void beforeExecute(JobExecutionContext context) {
+    private boolean beforeExecute(JobExecutionContext context) {
         List<SurroundWithOrder> surrounds = getAscendingOrderSurrounds();
-        // 创建一个新的列表用于排序，避免修改原始列表
+        BitSet results = new BitSet(surrounds.size());
 
-        for (SurroundWithOrder surroundWithOrder : surrounds) {
+        for (int i = 0; i < surrounds.size(); i++) {
+            SurroundWithOrder surroundWithOrder = surrounds.get(i);
             try {
-                surroundWithOrder.surround().before(context);
-            } catch (Exception ignore) {
+                boolean result = surroundWithOrder.surround().before(context);
+                results.set(i, result);
+            } catch (Exception e) {
+                logger.warn("Exception occurred in surround: {}",
+                        surroundWithOrder.surround().getClass().getSimpleName(), e);
+                // 异常时默认设置为true
+                results.set(i, true);
             }
         }
+
+        // 检查是否所有位都被设置为true
+        return results.cardinality() == surrounds.size();
     }
 
     /**

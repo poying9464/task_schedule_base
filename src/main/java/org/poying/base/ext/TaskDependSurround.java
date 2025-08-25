@@ -1,17 +1,12 @@
-package org.poying.base.ext.pyext;
+package org.poying.base.ext;
 
-import org.poying.base.ext.Surround;
 import org.quartz.JobExecutionContext;
 
-/**
- * 任务执行历史记录
- *
- * @author poying
- */
-public class TaskHistorySurround implements Surround {
+public class TaskDependSurround implements Surround {
+
     @Override
     public boolean before(JobExecutionContext context) {
-        return true;
+        return false;
     }
 
     @Override
