@@ -1,17 +1,15 @@
 package org.poying.base.ext.pyext;
 
 import org.poying.base.ann.RunOrder;
-import org.poying.base.db.TaskResourceInfoDao;
+import org.poying.base.db.TaskMysqlDao;
 import org.poying.base.ext.Surround;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StopWatch;
 
-import javax.sql.DataSource;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.ThreadMXBean;
@@ -40,8 +38,6 @@ public class TaskResourcesSurround implements Surround, JobListener {
 
     private TaskResourceInfo taskResourceInfo;
 
-    @Autowired
-    private DataSource dataSource;
 
     @Override
     public String getName() {
@@ -72,7 +68,7 @@ public class TaskResourcesSurround implements Surround, JobListener {
     public final void integration(JobExecutionContext context) {
         // save resource info
         // 将监控数据保存到数据库中
-        TaskResourceInfoDao.save(taskResourceInfo, dataSource);
+        TaskMysqlDao.saveTaskResourceInfo(taskResourceInfo);
     }
 
     /**

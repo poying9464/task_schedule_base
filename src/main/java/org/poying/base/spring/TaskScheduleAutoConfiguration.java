@@ -3,6 +3,7 @@ package org.poying.base.spring;
 import org.poying.base.cf.QuartzConfig;
 import org.poying.base.cf.TaskScheduleProperties;
 import org.poying.base.ext.pyext.TaskResourcesSurround;
+import org.poying.base.utils.GetBeanUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -24,7 +25,7 @@ import java.sql.Driver;
 @Configuration
 @ConditionalOnClass({Driver.class})
 @EnableConfigurationProperties({TaskScheduleProperties.class, DataSourceProperties.class})
-@Import(QuartzConfig.class)
+@Import(value = {QuartzConfig.class, GetBeanUtils.class})
 public class TaskScheduleAutoConfiguration {
     
     @Bean

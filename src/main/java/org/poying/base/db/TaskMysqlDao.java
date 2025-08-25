@@ -1,13 +1,21 @@
 package org.poying.base.db;
 
 import org.poying.base.ext.pyext.TaskResourcesSurround;
+import org.poying.base.utils.GetBeanUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public class TaskResourceInfoDao {
-    public static void save(TaskResourcesSurround.TaskResourceInfo taskResourceInfo, DataSource dataSource) {
+public class TaskMysqlDao {
+
+    private static final DataSource dataSource;
+
+    static {
+        dataSource = GetBeanUtils.getBean(DataSource.class);
+    }
+
+    public static void saveTaskResourceInfo(TaskResourcesSurround.TaskResourceInfo taskResourceInfo) {
         // 使用JDBC保存任务资源信息
         try (Connection connection = dataSource.getConnection()) {
             String sql = "INSERT INTO task_resource_info (jobKey, task_name, execution_time, cpu_time, memory_used, max_memory_used, memory_samples, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -34,5 +42,9 @@ public class TaskResourceInfoDao {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static boolean isSuccessful(String jobKey, String taskName) {
+        return true;
     }
 }
